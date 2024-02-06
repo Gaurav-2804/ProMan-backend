@@ -6,38 +6,39 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 
-import java.util.List;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-@Document(collection = "Members")
-public class Member {
-//    @Id
+public class TaskDAO {
     private Long id;
 
     @Id
-    private String memberId;
+    private String taskId;
 
-    private List<String> projectId;
+    private String category;
 
-    private String name;
+    private String assigneeId;
 
-    private String mailId;
+    private String reporterId;
 
-    private String userImgUrl;
+    private String projectKey;
 
-    public void setMemberId() {
-        this.memberId = "M-" + this.id;
+    private String startDate;
+
+    private String endDate;
+
+    private String summary;
+
+    public void setTaskId(String projectKey) {
+        this.taskId = projectKey+"-"+this.id;
     }
 
     public void generateId(MongoTemplate mongoTemplate) {
-        this.id = getNextSequence(mongoTemplate, "Members");
+        this.id = getNextSequence(mongoTemplate, "taskDAO");
     }
 
     private Long getNextSequence(MongoTemplate mongoTemplate, String collectionName) {

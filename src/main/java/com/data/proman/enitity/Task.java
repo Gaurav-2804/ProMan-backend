@@ -1,30 +1,44 @@
 package com.data.proman.enitity;
 
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Document(collection = "Tasks")
 public class Task {
-    @Id
-    private Integer taskId;
 
-    private String issueType;
+    @Id
+    private String taskId;
+
+    private String category;
 
     private String status;
 
-    private String assignee;
+    @DBRef
+    private Member assignee;
 
-    private String reporter;
+    @DBRef
+    private Member reporter;
 
     private String summary;
 
-    private String timeEstimate;
+    private String startDate;
 
-    private String parentName;
+    private String endDate;
+
+    private List<String> imgUrls;
+
+    @DBRef
+    private List<Comment> comments;
+
 }

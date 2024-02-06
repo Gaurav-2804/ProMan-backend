@@ -9,5 +9,5 @@ import java.util.List;
 public interface TaskService {
     public List<Task> getAllTasks();
 
-    public Task createTask(Task task);
+    public void updateTask(String taskId, Task task);
 }

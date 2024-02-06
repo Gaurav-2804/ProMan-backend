@@ -8,6 +8,7 @@ import com.data.proman.repository.MemberRepository;
 import com.data.proman.repository.ProjectRepository;
 import com.data.proman.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -21,13 +22,19 @@ public class MemberServiceImpl implements MemberService {
 
     @Autowired
     private MemberRepository memberRepository;
+
+    private final MongoTemplate mongoTemplate;
+
+    private MemberServiceImpl(MongoTemplate mongoTemplate) {
+        this.mongoTemplate = mongoTemplate;
+    };
+
     @Override
     public List<Member> getMembers(String projectId) {
         Optional<Project> projectEntity = projectRepository.findById(projectId);
         if(projectEntity.isPresent()){
             Project project = projectEntity.get();
-            List<Member> members = project.getMembers();
-            return members;
+            return project.getMembers();
         }
         else {
             throw new EntityNotFoundException(null, Project.class);
@@ -36,7 +43,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public void addMember(String projectId, Member member) {
-        Optional<Member> memberEntity = memberRepository.findById(member.getMemberId());
+        Optional<Member> memberEntity = memberRepository.findByMemberId(member.getMemberId());
         Optional<Project> projectEntity = projectRepository.findById(projectId);
 
         if(memberEntity.isPresent() && projectEntity.isPresent()){
@@ -55,7 +62,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public Member getMember(String memberId) {
-        Optional<Member> memberEntity = memberRepository.findById(memberId);
+        Optional<Member> memberEntity = memberRepository.findByMemberId(memberId);
         if(memberEntity.isPresent()){
             return memberEntity.get();
         }
@@ -71,7 +78,7 @@ public class MemberServiceImpl implements MemberService {
         if(member.getProjectId() == null) {
             member.setProjectId(new ArrayList<>());
         }
-        member = configureMember(member);
+        configureMember(member);
         List<String> projectIds = member.getProjectId();
         projectIds.add(project.getProjectId());
         member.setProjectId(projectIds);
@@ -85,12 +92,12 @@ public class MemberServiceImpl implements MemberService {
     private void updateMemberDetails(Member member) {
         memberRepository.save(member);
     }
-    private Member configureMember(Member member) {
-        Member configMember = member;
+    private void configureMember(Member member) {
+        member.generateId(mongoTemplate);
+        member.setMemberId();
         if(member.getUserImgUrl() == null || member.getUserImgUrl() == "") {
-            configMember.setUserImgUrl(FireStoreConstants.defaultUserImgUrl);
+            member.setUserImgUrl(FireStoreConstants.defaultUserImgUrl);
         }
-        return configMember;
     }
 
 
