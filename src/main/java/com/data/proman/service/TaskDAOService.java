@@ -12,6 +12,6 @@ import java.util.List;
 public interface TaskDAOService {
     public List<Task> getAllTasks(String projectKey);
 
-    public void createTask(TaskDAO task, String projectId, MultipartFile[] files) throws IOException;
+    public String createTask(TaskDAO task, String projectId, MultipartFile[] files) throws IOException;
 
 }

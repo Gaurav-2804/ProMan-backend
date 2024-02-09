@@ -55,7 +55,7 @@ public class TaskDAOServiceImpl implements TaskDAOService {
     }
 
     @Override
-    public void createTask(TaskDAO task, String projectId, MultipartFile[] files) throws IOException {
+    public String createTask(TaskDAO task, String projectId, MultipartFile[] files) throws IOException {
         Optional<Project> projectEntity = projectRepository.findById(projectId);
         if(projectEntity.isPresent()) {
             Project project = projectEntity.get();
@@ -64,6 +64,7 @@ public class TaskDAOServiceImpl implements TaskDAOService {
             taskDAORepository.save(taskFinal);
             configureTask(taskFinal, files);
             configureProjectTasks(project);
+            return taskFinal.getTaskId();
         }
         else {
             throw new EntityNotFoundException(null, Project.class);

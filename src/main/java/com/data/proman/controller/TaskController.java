@@ -34,11 +34,12 @@ public class TaskController {
 //    }
 
     @PostMapping("api/{projectId}/createTask")
-    public ResponseEntity<HttpStatus> createTask(@RequestParam("files") MultipartFile[] files,
+    public ResponseEntity<String> createTask(@RequestParam("files") MultipartFile[] files,
                                                  @RequestPart("taskDetails") @JsonDeserialize(as = TaskDAO.class) TaskDAO task,
                                                  @PathVariable String projectId) throws IOException {
-        taskDAOService.createTask(task, projectId, files);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+        String taskId = taskDAOService.createTask(task, projectId, files);
+
+        return new ResponseEntity<>(taskId,HttpStatus.CREATED);
     }
 
     @PutMapping("/api/{taskId}/updateTask")
