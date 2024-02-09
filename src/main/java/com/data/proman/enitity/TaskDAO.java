@@ -33,6 +33,8 @@ public class TaskDAO {
 
     private String summary;
 
+    private String description;
+
     public void setTaskId(String projectKey) {
         this.taskId = projectKey+"-"+this.id;
     }

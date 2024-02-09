@@ -96,7 +96,7 @@ public class TaskDAOServiceImpl implements TaskDAOService {
             throw new EntityNotFoundException(null, Member.class);
         }
         taskDb.setStatus("Open");
-        List<String> imgUrls = fileUpload(files);
+        List<String> imgUrls = fileUpload(files, task.getProjectKey(), task.getTaskId());
         taskDb.setImgUrls(imgUrls);
         taskRepository.save(taskDb);
     }
@@ -119,17 +119,17 @@ public class TaskDAOServiceImpl implements TaskDAOService {
                         })
                         .count();
         Long totalTasksCount = (long) tasksInProject.size();
-        Long progress = completedTasksCount/totalTasksCount;
+        Long progress = (completedTasksCount/totalTasksCount) * 100;
         project.setProgress(progress);
         projectRepository.save(project);
     }
 
-    private List<String> fileUpload(MultipartFile[] files) throws IOException {
+    private List<String> fileUpload(MultipartFile[] files, String projectKey, String taskId) throws IOException {
         String storageBucket = FireStoreConstants.storageBucket;
         Storage storage = StorageClient.getInstance().bucket().getStorage();
         return Arrays.stream(files).map((file) -> {
             String fileName = file.getOriginalFilename();
-            String filePath = "Temp/test/"+fileName;
+            String filePath = projectKey+"/" + taskId + "/" + fileName;
             BlobId blobId = BlobId.of(storageBucket, filePath);
             BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
                     .setAcl(new ArrayList<>(Arrays.asList(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER))))

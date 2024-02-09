@@ -36,6 +36,8 @@ public class Task {
 
     private String endDate;
 
+    private String description;
+
     private List<String> imgUrls;
 
     @DBRef
