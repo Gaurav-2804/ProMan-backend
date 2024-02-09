@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class TaskController {
@@ -34,12 +36,14 @@ public class TaskController {
 //    }
 
     @PostMapping("api/{projectId}/createTask")
-    public ResponseEntity<String> createTask(@RequestParam("files") MultipartFile[] files,
-                                                 @RequestPart("taskDetails") @JsonDeserialize(as = TaskDAO.class) TaskDAO task,
-                                                 @PathVariable String projectId) throws IOException {
+    public ResponseEntity<Map<String, Object>> createTask(@RequestParam("files") MultipartFile[] files,
+                                                          @RequestPart("taskDetails") @JsonDeserialize(as = TaskDAO.class) TaskDAO task,
+                                                          @PathVariable String projectId) throws IOException {
         String taskId = taskDAOService.createTask(task, projectId, files);
-
-        return new ResponseEntity<>(taskId,HttpStatus.CREATED);
+        Map<String, Object> response = new HashMap<>();
+        response.put("taskId", taskId);
+        response.put("status", "created");
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/api/{taskId}/updateTask")
