@@ -5,6 +5,7 @@ import com.data.proman.enitity.TaskDAO;
 import com.data.proman.service.TaskDAOService;
 import com.data.proman.service.TaskService;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,9 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 @RestController
 public class TaskController {
@@ -43,6 +48,7 @@ public class TaskController {
         Map<String, Object> response = new HashMap<>();
         response.put("taskId", taskId);
         response.put("status", "created");
+        System.out.println(LocalDateTime.now() + " Create task called " + task);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
