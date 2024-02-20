@@ -149,12 +149,34 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public Map<String,String> uploadImage(String taskId, String projectKey, MultipartFile[] files) {
+    public Map<String,String> uploadFileData(String taskId, String projectKey, MultipartFile[] files) {
+        Optional<Task> taskEntity = taskRepository.findById(taskId);
+        if (taskEntity.isPresent()) {
+            Task task = taskEntity.get();
+            Map<String,String> existingFileMap = task.getFilesMapping();
+            if(!Arrays.asList(files).isEmpty()) {
+                Map<String,String> fileMap = uploadImage(taskId, projectKey, files);
+                existingFileMap.putAll(fileMap);
+                taskRepository.save(task);
+            }
+            return existingFileMap;
+        }
+        else {
+            throw new EntityNotFoundException(404L, Task.class);
+        }
+    }
+
+    private Map<String,String> uploadImage(String taskId, String projectKey, MultipartFile[] files) {
         String storageBucket = FireStoreConstants.storageBucket;
         Storage storage = StorageClient.getInstance().bucket().getStorage();
         Map<String,String> filesMap = new HashMap<>();
         Arrays.stream(files).parallel().forEach((file) -> {
             String fileName = file.getOriginalFilename();
+            int dotIndex = fileName.lastIndexOf('.');
+            String sanitizedFileName = "";
+            if(dotIndex != -1) {
+                sanitizedFileName = fileName.substring(0,dotIndex);
+            }
             String filePath = projectKey+"/" + taskId + "/" + fileName;
             BlobId blobId = BlobId.of(storageBucket, filePath);
             BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
@@ -162,7 +184,7 @@ public class TaskServiceImpl implements TaskService {
                     .build();
             try {
                 Blob blob = storage.create(blobInfo, file.getBytes());
-                filesMap.put(fileName,blob.getMediaLink());
+                filesMap.put(sanitizedFileName,blob.getMediaLink());
             } catch (IOException e) {
                 filesMap.put(fileName, "Error: " + e.getMessage());
             }
@@ -236,8 +258,10 @@ public class TaskServiceImpl implements TaskService {
     private void configureTask(Task task, String taskId, String projectKey, MultipartFile[] files) throws IOException {
         task.setTaskId(taskId);
         task.setStatus("OPEN");
-        Map<String,String> fileData = uploadImage(task.getTaskId(), projectKey, files);
-        task.setFilesMapping(fileData);
+        if(!Arrays.asList(files).isEmpty()) {
+            Map<String,String> fileData = uploadImage(task.getTaskId(), projectKey, files);
+            task.setFilesMapping(fileData);
+        }
         taskRepository.save(task);
     }
 

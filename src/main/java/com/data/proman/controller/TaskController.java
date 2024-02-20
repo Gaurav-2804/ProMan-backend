@@ -42,13 +42,13 @@ public class TaskController {
     }
 
     @PostMapping("/api/uploadFiles")
-    public ResponseEntity<Map<String, Object>> uploadImage(@RequestParam("files") MultipartFile[] files,
+    public ResponseEntity<Map<String, String>> uploadImage(@RequestParam("files") MultipartFile[] files,
                                                            @RequestPart("fileDetails") Map<String, String> fileInfo) throws IOException {
         String taskId = fileInfo.get("taskId");
         String projectKey = fileInfo.get("projectKey");
-        Map<String,String> fileData = taskService.uploadImage(taskId, projectKey, files);
+        Map<String,String> fileData = taskService.uploadFileData(taskId, projectKey, files);
         Map<String, Object> response = createResponseObject(taskId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(fileData);
     }
 
     @PostMapping("/api/{projectId}/{taskId}/deleteTask")

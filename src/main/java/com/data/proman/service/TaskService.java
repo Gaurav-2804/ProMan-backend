@@ -20,5 +20,5 @@ public interface TaskService {
 
     public void deleteTask(String projectId, String taskId);
 
-    public Map<String, String> uploadImage(String taskId, String projectKey, MultipartFile[] files);
+    public Map<String, String> uploadFileData(String taskId, String projectKey, MultipartFile[] files);
 }
