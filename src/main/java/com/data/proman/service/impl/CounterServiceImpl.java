@@ -1,46 +1,20 @@
-package com.data.proman.enitity;
+package com.data.proman.service.impl;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
+import com.data.proman.enitity.Counters;
+import com.data.proman.service.CounterService;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Service;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-public class TaskDAO {
-    private Long id;
+@Service
+public class CounterServiceImpl implements CounterService {
 
-    @Id
-    private String taskId;
-
-    private String category;
-
-    private String assigneeId;
-
-    private String reporterId;
-
-    private String projectKey;
-
-    private String startDate;
-
-    private String endDate;
-
-    private String summary;
-
-    private String description;
-
-    public void setTaskId(String projectKey) {
-        this.taskId = projectKey+"-"+this.id;
-    }
-
-    public void generateId(MongoTemplate mongoTemplate) {
-        this.id = getNextSequence(mongoTemplate, "taskDAO");
+    @Override
+    public Long generateId(MongoTemplate mongoTemplate, String collectionName) {
+        return getNextSequence(mongoTemplate, collectionName);
     }
 
     private Long getNextSequence(MongoTemplate mongoTemplate, String collectionName) {

@@ -9,5 +9,11 @@ import java.util.List;
 public interface ProjectService {
     public List<Project> getAllProjects();
 
-    public Project createProject(Project project);
+    public String createProject(Project project);
+
+    public Project getProject(String projectId);
+
+    public Project updateProject(Project project);
+
+    public void deleteProject(String projectId);
 }

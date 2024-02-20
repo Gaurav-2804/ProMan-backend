@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
+import java.util.Map;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -24,11 +25,9 @@ public class Task {
 
     private String status;
 
-    @DBRef
-    private Member assignee;
+    private String assigneeId;
 
-    @DBRef
-    private Member reporter;
+    private String reporterId;
 
     private String summary;
 
@@ -38,7 +37,7 @@ public class Task {
 
     private String description;
 
-    private List<String> imgUrls;
+    private Map<String,String> filesMapping;
 
     @DBRef
     private List<Comment> comments;

@@ -8,7 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class MemberController {
@@ -18,15 +20,65 @@ public class MemberController {
     @Autowired
     private ProjectService projectService;
 
-    @PostMapping("/api/{projectId}/addmember")
-    public ResponseEntity<HttpStatus> createProject(@RequestBody Member member, @PathVariable String projectId) {
-        memberService.addMember(projectId,member);
-        return new ResponseEntity<>(HttpStatus.CREATED);
+    @PostMapping("/api/{projectId}/addMember")
+    public ResponseEntity<Map<String, Object>> addMemberToProject(@RequestBody Member member, @PathVariable String projectId) {
+        String memberId = memberService.addMemberToProject(projectId,member);
+        Map<String, Object> response = createResponseObject(memberId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/api/addMember")
+    public ResponseEntity<Object> addMember(@RequestBody Member member) {
+        if(memberService.isExistingMember(member)){
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Member already exists");
+        }
+        String memberId = memberService.addMember(member);
+        Map<String, Object> response = createResponseObject(memberId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/api/{projectId}/getMembers")
-    public ResponseEntity<List<Member>> getMembers(@PathVariable String projectId){
-        List<Member> members = memberService.getMembers(projectId);
+    public ResponseEntity<List<Member>> getProjectMembers(@PathVariable String projectId){
+        List<Member> members = memberService.getProjectMembers(projectId);
         return new ResponseEntity<>(members, HttpStatus.OK);
+    }
+
+    @GetMapping("/api/getAllMembers")
+    public ResponseEntity<List<Member>> getAllMembers(){
+        List<Member> members = memberService.getAllMembers();
+        return new ResponseEntity<>(members, HttpStatus.OK);
+    }
+
+    @GetMapping("/api/{memberId}/getMember")
+    public ResponseEntity<Member> getMember(@PathVariable String memberId) {
+        Member member = memberService.getMember(memberId);
+        return new ResponseEntity<>(member, HttpStatus.OK);
+    }
+
+    @PostMapping("/api/{memberId}/updateMember")
+    public ResponseEntity<Member> updateMember(@RequestBody Member member, @PathVariable String memberId) {
+        Member memberDetails = memberService.updateMember(member, memberId);
+        return new ResponseEntity<>(memberDetails, HttpStatus.OK);
+    }
+
+    @PostMapping("api/{projectId}/removeMember")
+    public ResponseEntity<HttpStatus>removeMemberFromProject(@PathVariable String projectId
+            , @RequestBody Map<String,String> payloadObject) {
+        memberService.removeMemberFromProject(projectId,payloadObject.get("memberId"));
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @PostMapping("api/removeMember")
+    public ResponseEntity<HttpStatus>removeMember(@RequestBody Map<String,String> payloadObject) {
+        memberService.removeMember(payloadObject.get("memberId"));
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+
+    private Map<String, Object> createResponseObject(String memberId) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("memberId", memberId);
+        response.put("status", "added");
+        return  response;
     }
 }
