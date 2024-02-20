@@ -222,7 +222,6 @@ public class TaskServiceImpl implements TaskService {
         TaskProjectMap taskProjectMap;
         if(taskProjectMapEntity.isPresent()) {
             taskProjectMap = taskProjectMapEntity.get();
-            taskProjectMap.initializeTaskStatusMap();
             taskProjectMap.setProjectId(projectId);
             List<String> taskMappings = taskProjectMap.getTaskStatusMap().get("OPEN");
             taskMappings.add(taskId);
