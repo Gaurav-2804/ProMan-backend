@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,17 +21,25 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
 
-    @GetMapping("/api/{projectId}/getAllTasks")
-    public ResponseEntity<List<Task>> getTasksInProject(@PathVariable String projectId){
-        List<Task> allTasksInProject = taskService.getTasksInProject(projectId);
-        return new ResponseEntity<>(allTasksInProject, HttpStatus.OK);
+    @PostMapping("/api/getAllTasks")
+    public ResponseEntity<List<Task>> getAllTasks(@RequestBody Map<String,String> payloadObject){
+        List<Task> allTasksList = Collections.emptyList();
+        if(payloadObject.containsKey("projectId")) {
+            String projectId = payloadObject.get("projectId");
+            allTasksList = taskService.getTasksInProject(projectId);
+        }
+        else if(payloadObject.containsKey("memberId")) {
+            String memberId = payloadObject.get("memberId");
+            allTasksList = taskService.getTasksByMember(memberId);
+        }
+        return new ResponseEntity<>(allTasksList, HttpStatus.OK);
     }
 
-    @GetMapping("/api/getAllTasks")
-    public ResponseEntity<List<Task>> getTasksInProject(){
-        List<Task> allTasks = taskService.getAllTasks();
-        return new ResponseEntity<>(allTasks, HttpStatus.OK);
-    }
+//    @GetMapping("/api/getAllTasks")
+//    public ResponseEntity<List<Task>> getAllTasks(){
+//        List<Task> allTasks = taskService.getAllTasks();
+//        return new ResponseEntity<>(allTasks, HttpStatus.OK);
+//    }
 
     @PostMapping("api/{projectId}/createTask")
     public ResponseEntity<Map<String, Object>> createTask(@RequestParam("files") MultipartFile[] files,

@@ -14,6 +14,8 @@ public interface TaskService {
 
     public List<Task> getTasksInProject(String projectId);
 
+    public List<Task> getTasksByMember(String memberId);
+
     public void updateTask(String projectId, String taskId, Task task);
 
     public String createTask(Task task, String projectId, MultipartFile[] files) throws IOException;

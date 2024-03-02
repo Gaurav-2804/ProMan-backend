@@ -4,6 +4,7 @@ import com.data.proman.configurations.FireStoreConstants;
 import com.data.proman.enitity.*;
 import com.data.proman.exception.EntityNotFoundException;
 import com.data.proman.repository.ProjectRepository;
+import com.data.proman.repository.TaskMemberMapRepository;
 import com.data.proman.repository.TaskProjectMapRepository;
 import com.data.proman.repository.TaskRepository;
 import com.data.proman.service.CounterService;
@@ -33,6 +34,9 @@ public class TaskServiceImpl implements TaskService {
 
     @Autowired
     private TaskProjectMapRepository taskProjectMapRepository;
+
+    @Autowired
+    private TaskMemberMapRepository taskMemberMapRepository;
 
     private final ModelMapper modelMapper;
     private final MongoTemplate mongoTemplate;
@@ -76,15 +80,45 @@ public class TaskServiceImpl implements TaskService {
             throw new EntityNotFoundException(404L, TaskProjectMap.class);
         }
     }
-    
+
+    @Override
+    public List<Task> getTasksByMember(String memberId) {
+        Optional<TaskMemberMap> taskMemberMapEntity = taskMemberMapRepository.findById(memberId);
+        if(taskMemberMapEntity.isPresent()) {
+            TaskMemberMap taskMemberMap = taskMemberMapEntity.get();
+            List<String> memberTaskIds = taskMemberMap.getStatusTasksMap().get("ASSIGNEE");
+            return memberTaskIds.stream()
+                    .map((taskId) -> {
+                        Optional<Task> taskEntity = taskRepository.findById(taskId);
+                        if(taskEntity.isPresent()) {
+                            return taskEntity.get();
+                        }
+                        else {
+                            throw new EntityNotFoundException(null, Task.class);
+                        }
+                    }).toList();
+        }
+        else {
+            throw new EntityNotFoundException(404L, TaskMemberMap.class);
+        }
+    }
+
     @Override
     public void updateTask(String projectId, String taskId, Task task) {
         Optional<Project> projectEntity = projectRepository.findById(projectId);
         Optional<Task> taskEntity = taskRepository.findById(taskId);
         if(taskEntity.isPresent() && projectEntity.isPresent()) {
             Project project = projectEntity.get();
-            handleUpdateTaskProjectMap(projectId, taskId, task, project);
             Task taskOld = taskEntity.get();
+            if(!taskOld.getStatus().equals(task.getStatus())) {
+                handleUpdateTaskProjectMap(projectId, taskId, task, project);
+            }
+            if(!taskOld.getAssigneeId().equals(task.getAssigneeId())){
+                handleUpdateTaskMemberMap(task, taskOld.getAssigneeId(), "ASSIGNEE");
+            }
+            if(!taskOld.getReporterId().equals(task.getReporterId())) {
+                handleUpdateTaskMemberMap(task, taskOld.getReporterId(), "REPORTER");
+            }
             modelMapper.getConfiguration().setSkipNullEnabled(true);
             modelMapper.map(task, taskOld);
             taskRepository.save(taskOld);
@@ -95,26 +129,82 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private void handleUpdateTaskProjectMap(String projectId, String taskId, Task task, Project project) {
-        if(task.getStatus().equals("Complete")) {
-            Optional<TaskProjectMap> taskProjectMapEntity = taskProjectMapRepository.findById(projectId);
-            if(taskProjectMapEntity.isPresent()) {
-                TaskProjectMap taskProjectMap = taskProjectMapEntity.get();
-                Map<String, List<String>> taskIdmaps = taskProjectMap.getTaskStatusMap();
-                taskIdmaps.forEach((String status, List<String> idList) -> {
-                    if(status.equals("COMPLETE")) {
-                        taskIdmaps.get(status).add(taskId);
-                    }
-                    else {
-                        taskIdmaps.get(status).remove(taskId);
-                    }
-                });
-                taskProjectMap.setTaskStatusMap(taskIdmaps);
-                taskProjectMapRepository.save(taskProjectMap);
-                configureProject(project, "UPDATE");
+        Optional<TaskProjectMap> taskProjectMapEntity = taskProjectMapRepository.findById(projectId);
+        if(taskProjectMapEntity.isPresent()) {
+            TaskProjectMap taskProjectMap = taskProjectMapEntity.get();
+            Map<String, List<String>> taskIdmaps = taskProjectMap.getTaskStatusMap();
+            String taskStatus = task.getStatus();
+            taskIdmaps.forEach((String status, List<String> idList) -> {
+                if(status.equals(taskStatus)) {
+                    taskIdmaps.get(status).add(taskId);
+                }
+                else {
+                    taskIdmaps.get(status).remove(taskId);
+                }
+            });
+            taskProjectMap.setTaskStatusMap(taskIdmaps);
+            taskProjectMapRepository.save(taskProjectMap);
+            configureProject(project, "UPDATE");
+        } else {
+            throw new EntityNotFoundException(null, TaskProjectMap.class);
+        }
+    }
+
+    private void handleUpdateTaskMemberMap(Task task, String memberId, String memberType) {
+        Optional<TaskMemberMap> oldMemberEntity = taskMemberMapRepository.findById(memberId);
+        String taskId = task.getTaskId();
+        if(oldMemberEntity.isPresent()) {
+            TaskMemberMap oldMember = oldMemberEntity.get();
+            Map<String, List<String>> taskIdmaps = oldMember.getStatusTasksMap();
+            taskIdmaps.forEach((String memberStatus, List<String> idList) -> {
+                if(memberStatus.equals(memberType)) {
+                    taskIdmaps.get(memberStatus).remove(taskId);
+                }
+            });
+            oldMember.setStatusTasksMap(taskIdmaps);
+            taskMemberMapRepository.save(oldMember);
+        }
+        else {
+            throw new EntityNotFoundException(404L, TaskMemberMap.class);
+        }
+
+        if(memberType.equals("ASSIGNEE")) {
+            Optional<TaskMemberMap> newMemberEntity = taskMemberMapRepository.findById(task.getAssigneeId());
+            TaskMemberMap memberMap;
+            if(newMemberEntity.isPresent()) {
+                memberMap = newMemberEntity.get();
+                List<String> assigneeTaskIds = memberMap.getStatusTasksMap().get("ASSIGNEE");
+                assigneeTaskIds.add(taskId);
+                memberMap.getStatusTasksMap().put("ASSIGNEE", assigneeTaskIds);
             }
             else {
-                throw new EntityNotFoundException(null, TaskProjectMap.class);
+                memberMap = new TaskMemberMap();
+                memberMap.setMemberId(memberId);
+                memberMap.initializeStatusTasksMap();
+                List<String> assigneeTaskIds = memberMap.getStatusTasksMap().get("ASSIGNEE");
+                assigneeTaskIds.add(taskId);
+                memberMap.getStatusTasksMap().put("ASSIGNEE", assigneeTaskIds);
             }
+            taskMemberMapRepository.save(memberMap);
+        }
+        else if(memberType.equals("REPORTER")) {
+            Optional<TaskMemberMap> newMemberEntity = taskMemberMapRepository.findById(task.getReporterId());
+            TaskMemberMap memberMap;
+            if(newMemberEntity.isPresent()) {
+                memberMap = newMemberEntity.get();
+                List<String> reporterTaskIds = memberMap.getStatusTasksMap().get("REPORTER");
+                reporterTaskIds.add(taskId);
+                memberMap.getStatusTasksMap().put("REPORTER", reporterTaskIds);
+            }
+            else {
+                memberMap = new TaskMemberMap();
+                memberMap.setMemberId(memberId);
+                memberMap.initializeStatusTasksMap();
+                List<String> reporterTaskIds = memberMap.getStatusTasksMap().get("REPORTER");
+                reporterTaskIds.add(taskId);
+                memberMap.getStatusTasksMap().put("REPORTER", reporterTaskIds);
+            }
+            taskMemberMapRepository.save(memberMap);
         }
     }
 
@@ -127,8 +217,8 @@ public class TaskServiceImpl implements TaskService {
             String taskId = configureTaskId(task, projectKey);
             configureTask(task,taskId,projectKey,files);
             configureTaskProjectMappping(taskId,projectId);
+            configureTaskMemberMapping(taskId, task.getAssigneeId(), task.getReporterId());
             configureProject(project, "ADD");
-//            handleProjectProgress(projectKey);
             return taskId;
         }
         else {
@@ -140,7 +230,9 @@ public class TaskServiceImpl implements TaskService {
     public void deleteTask(String projectId, String taskId) {
         Optional<Task> taskEntity = taskRepository.findById(taskId);
         if(taskEntity.isPresent()) {
-            deleteTaskFromMapping(projectId, taskId);
+            Task task = taskEntity.get();
+            deleteTaskFromProjectMapping(projectId, taskId);
+            deleteTaskFromMemberMapping(task.getAssigneeId(), task.getReporterId(), taskId);
             taskRepository.deleteById(taskId);
         }
         else {
@@ -193,7 +285,7 @@ public class TaskServiceImpl implements TaskService {
         return filesMap;
     }
 
-    private void deleteTaskFromMapping(String projectId, String taskId) {
+    private void deleteTaskFromProjectMapping(String projectId, String taskId) {
         Optional<TaskProjectMap> taskProjectMapEntity = taskProjectMapRepository.findById(projectId);
         Optional<Project> projectEntity = projectRepository.findById(projectId);
         if(taskProjectMapEntity.isPresent() && projectEntity.isPresent()) {
@@ -206,9 +298,28 @@ public class TaskServiceImpl implements TaskService {
             for(String status: taskIdmaps.keySet()) {
                 taskIdmaps.get(status).remove(taskId);
             }
-//            taskProjectMap.setTaskStatusMap(taskIdmaps);
+            taskProjectMap.setTaskStatusMap(taskIdmaps);
             taskProjectMapRepository.save(taskProjectMap);
             configureProject(project, "REMOVE");
+        }
+    }
+
+    private void deleteTaskFromMemberMapping(String assigneeId, String reporterId, String taskId) {
+        Optional<TaskMemberMap> assigneeMapEntity = taskMemberMapRepository.findById(assigneeId);
+        Optional<TaskMemberMap> reporterMapEntity = taskMemberMapRepository.findById(reporterId);
+        if(assigneeMapEntity.isPresent()) {
+            TaskMemberMap taskMemberMap = assigneeMapEntity.get();
+            List<String> assigneeTaskIds = taskMemberMap.getStatusTasksMap().get("ASSIGNEE");
+            assigneeTaskIds.remove(taskId);
+            taskMemberMap.getStatusTasksMap().put("ASSIGNEE", assigneeTaskIds);
+            taskMemberMapRepository.save(taskMemberMap);
+        }
+        if(reporterMapEntity.isPresent()) {
+            TaskMemberMap taskMemberMap = reporterMapEntity.get();
+            List<String> reporterTaskIds = taskMemberMap.getStatusTasksMap().get("REPORTER");
+            reporterTaskIds.remove(taskId);
+            taskMemberMap.getStatusTasksMap().put("REPORTER", reporterTaskIds);
+            taskMemberMapRepository.save(taskMemberMap);
         }
     }
 
@@ -238,6 +349,46 @@ public class TaskServiceImpl implements TaskService {
         taskProjectMapRepository.save(taskProjectMap);
     }
 
+    private void configureTaskMemberMapping(String taskId, String assigneeId, String reporterId) {
+        Optional<TaskMemberMap> assigneeMapEntity = taskMemberMapRepository.findById(assigneeId);
+        Optional<TaskMemberMap> reporterMapEntity = taskMemberMapRepository.findById(reporterId);
+        TaskMemberMap assigneeMap;
+        TaskMemberMap reporterMap;
+
+        if(assigneeMapEntity.isPresent()) {
+            assigneeMap = assigneeMapEntity.get();
+            List<String> taskIdsMap = assigneeMap.getStatusTasksMap().get("ASSIGNEE");
+            taskIdsMap.add(taskId);
+            assigneeMap.getStatusTasksMap().put("ASSIGNEE", taskIdsMap);
+        }
+        else {
+            assigneeMap = new TaskMemberMap();
+            assigneeMap.initializeStatusTasksMap();
+            assigneeMap.setMemberId(assigneeId);
+            List<String> taskIdsMap = assigneeMap.getStatusTasksMap().get("ASSIGNEE");
+            taskIdsMap.add(taskId);
+            assigneeMap.getStatusTasksMap().put("ASSIGNEE", taskIdsMap);
+        }
+
+        if(reporterMapEntity.isPresent()) {
+            reporterMap = reporterMapEntity.get();
+            List<String> taskIdsMap = reporterMap.getStatusTasksMap().get("REPORTER");
+            taskIdsMap.add(taskId);
+            reporterMap.getStatusTasksMap().put("REPORTER", taskIdsMap);
+        }
+        else {
+            reporterMap = new TaskMemberMap();
+            reporterMap.initializeStatusTasksMap();
+            reporterMap.setMemberId(reporterId);
+            List<String> taskIdsMap = reporterMap.getStatusTasksMap().get("REPORTER");
+            taskIdsMap.add(taskId);
+            reporterMap.getStatusTasksMap().put("REPORTER", taskIdsMap);
+        }
+
+        taskMemberMapRepository.save(assigneeMap);
+        taskMemberMapRepository.save(reporterMap);
+    }
+
     private void configureProject(Project project, String action){
         Integer totalTaks;
         if(action.equals("ADD")) {
@@ -264,25 +415,6 @@ public class TaskServiceImpl implements TaskService {
         taskRepository.save(task);
     }
 
-//    private List<String> fileUpload(MultipartFile[] files, String projectKey, String taskId) throws IOException {
-//        String storageBucket = FireStoreConstants.storageBucket;
-//        Storage storage = StorageClient.getInstance().bucket().getStorage();
-//        return Arrays.stream(files).map((file) -> {
-//            String fileName = file.getOriginalFilename();
-//            String filePath = projectKey+"/" + taskId + "/" + fileName;
-//            BlobId blobId = BlobId.of(storageBucket, filePath);
-//            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
-//                    .setAcl(new ArrayList<>(Arrays.asList(Acl.of(Acl.User.ofAllUsers(), Acl.Role.READER))))
-//                    .build();
-//            try {
-//                Blob blob = storage.create(blobInfo, file.getBytes());
-//                return blob.getMediaLink();
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }).collect(Collectors.toList());
-//    }
-
     private Long getProjectProgress(String projectId, Integer totalNumberOfTasks) {
         Optional<TaskProjectMap> taskProjectMapEntity = taskProjectMapRepository.findById(projectId);
         Optional<Project> projectEntity = projectRepository.findById(projectId);
@@ -297,33 +429,5 @@ public class TaskServiceImpl implements TaskService {
             throw new EntityNotFoundException(404L, TaskProjectMap.class);
         }
     }
-
-//    private void handleProjectProgress(String projectKey) {
-//        Optional<Project> projectEntity = projectRepository.findByKey(projectKey);
-//        if(projectEntity.isPresent()){
-//            Project project = projectEntity.get();
-//            List<TaskProjectMap> tasksList = taskProjectMapRepository.findAllByProjectKey(projectKey);
-//            Long completedTasksCount = tasksList.stream()
-//                    .filter(task -> {
-//                        Optional<Task> taskRefEntity = taskRepository.findById(task.getTaskId());
-//                        if(taskRefEntity.isPresent()){
-//                            Task taskRef = taskRefEntity.get();
-//                            return taskRef.getStatus().equals("Complete");
-//                        }
-//                        else {
-//                            throw new EntityNotFoundException(null, Task.class);
-//                        }
-//                    })
-//                    .count();
-//            Long totalTasksCount = (long) tasksList.size();
-//            Long progress = (completedTasksCount/totalTasksCount) * 100;
-//            project.setProgress(progress);
-//            projectRepository.save(project);
-//        }
-//        else {
-//            throw new EntityNotFoundException(null,Project.class);
-//        }
-//
-//    }
 
 }

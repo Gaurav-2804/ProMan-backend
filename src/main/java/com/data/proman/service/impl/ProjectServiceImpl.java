@@ -3,9 +3,11 @@ package com.data.proman.service.impl;
 import com.data.proman.enitity.Project;
 import com.data.proman.exception.EntityNotFoundException;
 import com.data.proman.repository.ProjectRepository;
+import com.data.proman.service.CounterService;
 import com.data.proman.service.ProjectService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -17,10 +19,16 @@ public class ProjectServiceImpl implements ProjectService {
     @Autowired
     private ProjectRepository projectRepository;
 
+    @Autowired
+    private CounterService counterService;
+
     private final ModelMapper modelMapper;
 
-    public ProjectServiceImpl(ModelMapper modelMapper) {
+    private final MongoTemplate mongoTemplate;
+
+    public ProjectServiceImpl(ModelMapper modelMapper, MongoTemplate mongoTemplate) {
         this.modelMapper = modelMapper;
+        this.mongoTemplate = mongoTemplate;
     }
 
     @Override
@@ -30,9 +38,16 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public String createProject(Project project) {
-        project.setProjectId(project.getName(), project.getKey());
+        String projectKey = configureProjectKey();
+        project.setKey(projectKey);
+        project.setProjectId(project.getName(), projectKey);
         Project newProject = projectRepository.save(project);
         return newProject.getProjectId();
+    }
+
+    private String configureProjectKey() {
+        Long pId = counterService.generateId(mongoTemplate, "Projects");
+        return "PR_" + pId;
     }
 
     @Override
@@ -64,4 +79,5 @@ public class ProjectServiceImpl implements ProjectService {
     public void deleteProject(String projectId) {
         projectRepository.deleteById(projectId);
     }
+
 }
