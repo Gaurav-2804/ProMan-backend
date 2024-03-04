@@ -21,8 +21,10 @@ public class MemberController {
     private ProjectService projectService;
 
     @PostMapping("/api/{projectId}/addMember")
-    public ResponseEntity<Map<String, Object>> addMemberToProject(@RequestBody Member member, @PathVariable String projectId) {
-        String memberId = memberService.addMemberToProject(projectId,member);
+    public ResponseEntity<Map<String, Object>> addMemberToProject(@RequestBody Map<String,String> payloadObject,
+                                                                  @PathVariable String projectId) {
+        String memberId = payloadObject.get("memberId");
+        memberService.addMemberToProject(projectId, memberId);
         Map<String, Object> response = createResponseObject(memberId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }

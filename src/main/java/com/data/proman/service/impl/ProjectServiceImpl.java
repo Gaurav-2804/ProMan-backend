@@ -32,7 +32,7 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public List<Project> getAllProjects() {
+    public List<Project> getAllProjects(String memberId) {
         return projectRepository.findAll();
     }
 
@@ -78,6 +78,12 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public void deleteProject(String projectId) {
         projectRepository.deleteById(projectId);
+    }
+
+    @Override
+    public Boolean isExistingProject(String projectId) {
+        Optional<Project> projectEntity = projectRepository.findById(projectId);
+        return  projectEntity.isPresent();
     }
 
 }

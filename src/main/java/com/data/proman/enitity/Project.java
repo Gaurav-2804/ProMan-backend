@@ -34,8 +34,7 @@ public class Project {
 
     private Long progress = (long)0;
 
-    @DBRef
-    private List<Member> members;
+    private List<String> memberIds;
 
     public void setProjectId(String name, String key) {
         this.projectId = key + "-" + generateProjectId(name);

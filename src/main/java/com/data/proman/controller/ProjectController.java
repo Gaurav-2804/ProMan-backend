@@ -17,9 +17,9 @@ public class ProjectController {
     @Autowired
     private ProjectService projectService;
 
-    @GetMapping("/api/getAllProjects")
-    public ResponseEntity<List<Project>> getAllProjects(){
-        List<Project> projects = projectService.getAllProjects();
+    @GetMapping("/api/{memberId}/getAllProjects")
+    public ResponseEntity<List<Project>> getAllProjects(@PathVariable String memberId){
+        List<Project> projects = projectService.getAllProjects(memberId);
         return new ResponseEntity<>(projects, HttpStatus.OK);
     }
 

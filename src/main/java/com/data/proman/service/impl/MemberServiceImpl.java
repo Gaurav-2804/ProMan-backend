@@ -15,6 +15,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,7 +44,21 @@ public class MemberServiceImpl implements MemberService {
         Optional<Project> projectEntity = projectRepository.findById(projectId);
         if(projectEntity.isPresent()){
             Project project = projectEntity.get();
-            return project.getMembers();
+            List<String> memberIds = Collections.emptyList();
+            if(project.getMemberIds() != null) {
+               memberIds  = project.getMemberIds();
+            }
+
+            return memberIds.stream()
+                    .map((memberId) -> {
+                        Optional<Member> memberEntity= memberRepository.findByMemberId(memberId);
+                        if(memberEntity.isPresent()) {
+                            return memberEntity.get();
+                        }
+                        else {
+                            throw new EntityNotFoundException(404L, Member.class);
+                        }
+                    }).toList();
         }
         else {
             throw new EntityNotFoundException(null, Project.class);
@@ -56,30 +71,28 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public String addMemberToProject(String projectId, Member member) {
-        Optional<Member> memberEntity = memberRepository.findByMemberId(member.getMemberId());
+    public void addMemberToProject(String projectId, String memberId) {
+        Optional<Member> memberEntity = memberRepository.findByMemberId(memberId);
         Optional<Project> projectEntity = projectRepository.findById(projectId);
 
         if(memberEntity.isPresent() && projectEntity.isPresent()){
-            addMemberToExistingProject(projectEntity.get(),memberEntity.get());
+            addMemberToExistingProject(projectEntity.get(), memberEntity.get(), memberId);
         }
         else if(projectEntity.isPresent()){
-            addMemberToExistingProject(projectEntity.get(),member);
+            addMemberToExistingProject(projectEntity.get(),memberEntity.get(), memberId);
         } else if(memberEntity.isEmpty()){
             throw new EntityNotFoundException(null, Member.class);
         }
         else {
             throw new EntityNotFoundException(null, Project.class);
         }
-        return member.getMailId();
     }
 
     @Override
     public String addMember(Member member) {
         Member memberDb = configureMember(member);
-        memberDb.setMemberId(member.getMailId());
-        memberRepository.save(member);
-        return member.getMailId();
+        memberRepository.save(memberDb);
+        return member.getMemberId();
     }
 
     @Override
@@ -95,7 +108,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public Boolean isExistingMember(Member member) {
-        Optional<Member> isExistingMember = memberRepository.findByMailId(member.getMailId());
+        Optional<Member> isExistingMember = memberRepository.findByMemberId(member.getMemberId());
         return isExistingMember.isPresent();
     }
 
@@ -118,7 +131,7 @@ public class MemberServiceImpl implements MemberService {
         Optional<Member> memberEntity = memberRepository.findByMemberId(memberId);
         Optional<Project> projectEntity = projectRepository.findById(projectId);
         if(projectEntity.isPresent() && memberEntity.isPresent()) {
-            updateProjectDetails(memberEntity.get(),projectEntity.get(),"REMOVE");
+            updateProjectDetails(memberId,projectEntity.get(),"REMOVE");
             updateMemberDetails(memberEntity.get(),projectEntity.get().getProjectId(),"REMOVE");
         }
         else {
@@ -131,19 +144,19 @@ public class MemberServiceImpl implements MemberService {
         memberRepository.deleteById(memberId);
     }
 
-    private void addMemberToExistingProject(Project project, Member member) {
-        if (project.getMembers() == null) {
-            project.setMembers(new ArrayList<>());
+    private void addMemberToExistingProject(Project project, Member member, String memberId) {
+        if (project.getMemberIds() == null || project.getMemberIds().isEmpty()) {
+            project.setMemberIds(Collections.emptyList());
         }
-        if(member.getProjectId() == null) {
-            member.setProjectId(new ArrayList<>());
+        if(member.getProjectId() == null || member.getProjectId().isEmpty()) {
+            member.setProjectId(Collections.emptyList());
         }
         updateMemberDetails(member, project.getProjectId(), "ADD");
-        updateProjectDetails(member, project, "ADD");
+        updateProjectDetails(memberId, project, "ADD");
     }
     
     private void updateMemberDetails(Member member, String projectId, String action) {
-        List<String> projectIds = member.getProjectId();
+        List<String> projectIds = new ArrayList<>(member.getProjectId());
         if(action.equals("ADD")){
             projectIds.add(projectId);
         }
@@ -154,19 +167,19 @@ public class MemberServiceImpl implements MemberService {
         memberRepository.save(member);
     }
 
-    private void updateProjectDetails(Member member, Project project, String action) {
-        List<Member> membersList = project.getMembers();
+    private void updateProjectDetails(String memberId, Project project, String action) {
+        List<String> memberIds = new ArrayList<>(project.getMemberIds());
         if(action.equals("ADD")) {
-            membersList.add(member);
+            memberIds.add(memberId);
         }
         else {
-            membersList.removeIf(tempMember -> tempMember.getMemberId().equals(member.getMemberId()));
+            memberIds.removeIf(tempMember -> tempMember.equals(memberId));
         }
-        project.setMembers(membersList);
+        project.setMemberIds(memberIds);
         projectRepository.save(project);
     }
     private Member configureMember(Member member) {
-        if(member.getUserImgUrl() == null || member.getUserImgUrl() == "") {
+        if(member.getUserImgUrl().equals("null") || member.getUserImgUrl() == "") {
             member.setUserImgUrl(FireStoreConstants.defaultUserImgUrl);
         }
         return member;

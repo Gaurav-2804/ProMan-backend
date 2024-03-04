@@ -1,6 +1,7 @@
 package com.data.proman.controller;
 
 import com.data.proman.enitity.Task;
+import com.data.proman.service.ProjectService;
 import com.data.proman.service.TaskService;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,9 @@ public class TaskController {
 
     @Autowired
     private TaskService taskService;
+
+    @Autowired
+    private ProjectService projectService;
 
     @PostMapping("/api/getAllTasks")
     public ResponseEntity<List<Task>> getAllTasks(@RequestBody Map<String,String> payloadObject){
@@ -42,12 +46,17 @@ public class TaskController {
 //    }
 
     @PostMapping("api/{projectId}/createTask")
-    public ResponseEntity<Map<String, Object>> createTask(@RequestParam("files") MultipartFile[] files,
+    public ResponseEntity<Object> createTask(@RequestParam("files") MultipartFile[] files,
                                                           @RequestPart("taskDetails") @JsonDeserialize(as = Task.class) Task task,
                                                           @PathVariable String projectId) throws IOException {
-        String taskId = taskService.createTask(task, projectId, files);
-        Map<String, Object> response = createResponseObject(taskId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        if(projectService.isExistingProject(projectId)) {
+            String taskId = taskService.createTask(task, projectId, files);
+            Map<String, Object> response = createResponseObject(taskId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }
+        else {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Project with id " + projectId +" do not exist in the record.");
+        }
     }
 
     @PostMapping("/api/uploadFiles")

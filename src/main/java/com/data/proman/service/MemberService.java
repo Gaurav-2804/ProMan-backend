@@ -11,7 +11,7 @@ public interface MemberService {
 
     public List<Member> getAllMembers();
 
-    public String addMemberToProject(String projectId, Member member);
+    public void addMemberToProject(String projectId, String memberId);
 
     public String addMember(Member member);
 
