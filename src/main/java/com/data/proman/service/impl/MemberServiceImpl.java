@@ -14,10 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class MemberServiceImpl implements MemberService {
@@ -142,6 +139,27 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void removeMember(String memberId) {
         memberRepository.deleteById(memberId);
+    }
+
+    @Override
+    public Map<String, List<String>> getMemberProjectMappings() {
+        Map<String,List<String>> memberProjectMap = new HashMap<>();
+        List<Member> members = memberRepository.findAll();
+        members.forEach((member) -> {
+            List<String> projectIds = member.getProjectId();
+            List<String> projectNames = new ArrayList<>(Collections.emptyList());
+            projectIds.forEach((prId) -> {
+                Optional<Project> projectEntity = projectRepository.findById(prId);
+                if (projectEntity.isPresent()) {
+                    String projName = projectEntity.get().getName();
+                    projectNames.add(projName);
+                } else
+                    throw new EntityNotFoundException(404L, Project.class);
+            });
+            memberProjectMap.put(member.getName(), projectNames);
+        });
+
+        return memberProjectMap;
     }
 
     private void addMemberToExistingProject(Project project, Member member, String memberId) {

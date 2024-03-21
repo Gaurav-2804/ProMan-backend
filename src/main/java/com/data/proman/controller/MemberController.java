@@ -76,6 +76,12 @@ public class MemberController {
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
+    @GetMapping("/api/getProjectsByMember")
+    public ResponseEntity<Map<String,List<String>>> getProjectsByMember() {
+        Map<String,List<String>> memberProjectMappings = memberService.getMemberProjectMappings();
+        return new ResponseEntity<>(memberProjectMappings, HttpStatus.OK);
+    }
+
 
     private Map<String, Object> createResponseObject(String memberId) {
         Map<String, Object> response = new HashMap<>();

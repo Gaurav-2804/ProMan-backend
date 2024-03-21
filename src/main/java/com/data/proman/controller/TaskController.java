@@ -1,6 +1,7 @@
 package com.data.proman.controller;
 
 import com.data.proman.enitity.Task;
+import com.data.proman.enitity.dao.TaskDAO;
 import com.data.proman.service.ProjectService;
 import com.data.proman.service.TaskService;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -26,8 +27,8 @@ public class TaskController {
     private ProjectService projectService;
 
     @PostMapping("/api/getAllTasks")
-    public ResponseEntity<List<Task>> getAllTasks(@RequestBody Map<String,String> payloadObject){
-        List<Task> allTasksList = Collections.emptyList();
+    public ResponseEntity<List<TaskDAO>> getAllTasks(@RequestBody Map<String,String> payloadObject){
+        List<TaskDAO> allTasksList = Collections.emptyList();
         if(payloadObject.containsKey("projectId")) {
             String projectId = payloadObject.get("projectId");
             allTasksList = taskService.getTasksInProject(projectId);
@@ -37,6 +38,12 @@ public class TaskController {
             allTasksList = taskService.getTasksByMember(memberId);
         }
         return new ResponseEntity<>(allTasksList, HttpStatus.OK);
+    }
+
+    @GetMapping("/api/{taskId}/getTask")
+    public ResponseEntity<TaskDAO> getTask(@PathVariable String taskId) {
+        TaskDAO taskRes =  taskService.getTask(taskId);
+        return new ResponseEntity<>(taskRes, HttpStatus.OK);
     }
 
 //    @GetMapping("/api/getAllTasks")

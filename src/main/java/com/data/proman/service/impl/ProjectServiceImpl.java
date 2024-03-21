@@ -1,7 +1,9 @@
 package com.data.proman.service.impl;
 
+import com.data.proman.enitity.Member;
 import com.data.proman.enitity.Project;
 import com.data.proman.exception.EntityNotFoundException;
+import com.data.proman.repository.MemberRepository;
 import com.data.proman.repository.ProjectRepository;
 import com.data.proman.service.CounterService;
 import com.data.proman.service.ProjectService;
@@ -11,6 +13,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -18,6 +21,9 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Autowired
     private ProjectRepository projectRepository;
+
+    @Autowired
+    private MemberRepository memberRepository;
 
     @Autowired
     private CounterService counterService;
@@ -33,7 +39,19 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public List<Project> getAllProjects(String memberId) {
-        return projectRepository.findAll();
+        Optional<Member> memberEntity = memberRepository.findByMemberId(memberId);
+        if(memberEntity.isPresent()) {
+            Member member = memberEntity.get();
+            List<String> projectIds = member.getProjectId();
+            return projectIds.stream()
+                    .map(projectId -> {
+                        return fetchProject(projectId);
+                    }).toList();
+        }
+        else {
+            throw new EntityNotFoundException(404L, Member.class);
+        }
+//        return projectRepository.findAll();
     }
 
     @Override
@@ -84,6 +102,14 @@ public class ProjectServiceImpl implements ProjectService {
     public Boolean isExistingProject(String projectId) {
         Optional<Project> projectEntity = projectRepository.findById(projectId);
         return  projectEntity.isPresent();
+    }
+
+    private Project fetchProject(String projectId) {
+        Optional<Project> projectEntity = projectRepository.findById(projectId);
+        if (projectEntity.isPresent())
+            return projectEntity.get();
+        else
+            throw new EntityNotFoundException(404L, Project.class);
     }
 
 }

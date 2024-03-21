@@ -2,11 +2,9 @@ package com.data.proman.service.impl;
 
 import com.data.proman.configurations.FireStoreConstants;
 import com.data.proman.enitity.*;
+import com.data.proman.enitity.dao.TaskDAO;
 import com.data.proman.exception.EntityNotFoundException;
-import com.data.proman.repository.ProjectRepository;
-import com.data.proman.repository.TaskMemberMapRepository;
-import com.data.proman.repository.TaskProjectMapRepository;
-import com.data.proman.repository.TaskRepository;
+import com.data.proman.repository.*;
 import com.data.proman.service.CounterService;
 import com.data.proman.service.TaskService;
 import com.google.cloud.storage.*;
@@ -33,6 +31,9 @@ public class TaskServiceImpl implements TaskService {
     private ProjectRepository projectRepository;
 
     @Autowired
+    private MemberRepository memberRepository;
+
+    @Autowired
     private TaskProjectMapRepository taskProjectMapRepository;
 
     @Autowired
@@ -52,7 +53,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<Task> getTasksInProject(String projectId) {
+    public List<TaskDAO> getTasksInProject(String projectId) {
         Optional<TaskProjectMap> taskProjectMapEntity = taskProjectMapRepository.findById(projectId);
         if(taskProjectMapEntity.isPresent()) {
             TaskProjectMap taskProjectMap = taskProjectMapEntity.get();
@@ -69,7 +70,9 @@ public class TaskServiceImpl implements TaskService {
                     .map((taskId) -> {
                         Optional<Task> taskEntity = taskRepository.findById(taskId);
                         if(taskEntity.isPresent()){
-                            return taskEntity.get();
+                            Task task = taskEntity.get();
+                            return fetchTask(task);
+//                            return taskEntity.get();
                         }
                         else {
                             throw new EntityNotFoundException(null, Task.class);
@@ -82,7 +85,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<Task> getTasksByMember(String memberId) {
+    public List<TaskDAO> getTasksByMember(String memberId) {
         Optional<TaskMemberMap> taskMemberMapEntity = taskMemberMapRepository.findById(memberId);
         if(taskMemberMapEntity.isPresent()) {
             TaskMemberMap taskMemberMap = taskMemberMapEntity.get();
@@ -91,7 +94,9 @@ public class TaskServiceImpl implements TaskService {
                     .map((taskId) -> {
                         Optional<Task> taskEntity = taskRepository.findById(taskId);
                         if(taskEntity.isPresent()) {
-                            return taskEntity.get();
+                            Task task = taskEntity.get();
+                            return fetchTask(task);
+//                            return taskEntity.get();
                         }
                         else {
                             throw new EntityNotFoundException(null, Task.class);
@@ -101,6 +106,27 @@ public class TaskServiceImpl implements TaskService {
         else {
             throw new EntityNotFoundException(404L, TaskMemberMap.class);
         }
+    }
+
+    @Override
+    public TaskDAO getTask(String taskId) {
+        Optional<Task> taskEntity = taskRepository.findById(taskId);
+        if(taskEntity.isPresent()){
+            return fetchTask(taskEntity.get());
+        }
+        else {
+            throw new EntityNotFoundException(404L, Task.class);
+        }
+    }
+
+    private TaskDAO fetchTask(Task task) {
+        TaskDAO taskDAO = new TaskDAO();
+        this.modelMapper.map(task, taskDAO);
+        String assignee = memberRepository.findById(task.getAssigneeId()).get().getMailId() ;
+        String reporter = memberRepository.findById(task.getReporterId()).get().getMailId();
+        taskDAO.setAssignee(assignee);
+        taskDAO.setReporter(reporter);
+        return taskDAO;
     }
 
     @Override

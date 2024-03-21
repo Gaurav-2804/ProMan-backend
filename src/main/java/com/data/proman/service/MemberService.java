@@ -4,6 +4,7 @@ import com.data.proman.enitity.Member;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 @Service
 public interface MemberService {
@@ -24,4 +25,8 @@ public interface MemberService {
     public void removeMemberFromProject(String projectId, String memberId);
 
     public void removeMember(String memberId);
+
+    public Map<String,List<String>> getMemberProjectMappings();
+
+//    public Map<String,String> getMemberProjectMapping();
 }

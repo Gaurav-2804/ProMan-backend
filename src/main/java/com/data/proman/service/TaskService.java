@@ -1,6 +1,7 @@
 package com.data.proman.service;
 
 import com.data.proman.enitity.Task;
+import com.data.proman.enitity.dao.TaskDAO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -12,9 +13,11 @@ import java.util.Map;
 public interface TaskService {
     public List<Task> getAllTasks();
 
-    public List<Task> getTasksInProject(String projectId);
+    public List<TaskDAO> getTasksInProject(String projectId);
 
-    public List<Task> getTasksByMember(String memberId);
+    public List<TaskDAO> getTasksByMember(String memberId);
+
+    public TaskDAO getTask(String taskId);
 
     public void updateTask(String projectId, String taskId, Task task);
 
