@@ -53,7 +53,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDAO> getTasksInProject(String projectId) {
+    public List<Task> getTasksInProject(String projectId) {
         Optional<TaskProjectMap> taskProjectMapEntity = taskProjectMapRepository.findById(projectId);
         if(taskProjectMapEntity.isPresent()) {
             TaskProjectMap taskProjectMap = taskProjectMapEntity.get();
@@ -70,9 +70,9 @@ public class TaskServiceImpl implements TaskService {
                     .map((taskId) -> {
                         Optional<Task> taskEntity = taskRepository.findById(taskId);
                         if(taskEntity.isPresent()){
-                            Task task = taskEntity.get();
-                            return fetchTask(task);
-//                            return taskEntity.get();
+//                            Task task = taskEntity.get();
+//                            return fetchTask(task);
+                            return taskEntity.get();
                         }
                         else {
                             throw new EntityNotFoundException(null, Task.class);
@@ -85,7 +85,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDAO> getTasksByMember(String memberId) {
+    public List<Task> getTasksByMember(String memberId) {
         Optional<TaskMemberMap> taskMemberMapEntity = taskMemberMapRepository.findById(memberId);
         if(taskMemberMapEntity.isPresent()) {
             TaskMemberMap taskMemberMap = taskMemberMapEntity.get();
@@ -94,9 +94,9 @@ public class TaskServiceImpl implements TaskService {
                     .map((taskId) -> {
                         Optional<Task> taskEntity = taskRepository.findById(taskId);
                         if(taskEntity.isPresent()) {
-                            Task task = taskEntity.get();
-                            return fetchTask(task);
-//                            return taskEntity.get();
+//                            Task task = taskEntity.get();
+//                            return fetchTask(task);
+                            return taskEntity.get();
                         }
                         else {
                             throw new EntityNotFoundException(null, Task.class);

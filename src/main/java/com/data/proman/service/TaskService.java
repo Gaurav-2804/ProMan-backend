@@ -13,9 +13,9 @@ import java.util.Map;
 public interface TaskService {
     public List<Task> getAllTasks();
 
-    public List<TaskDAO> getTasksInProject(String projectId);
+    public List<Task> getTasksInProject(String projectId);
 
-    public List<TaskDAO> getTasksByMember(String memberId);
+    public List<Task> getTasksByMember(String memberId);
 
     public TaskDAO getTask(String taskId);
 

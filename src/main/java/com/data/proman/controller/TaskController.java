@@ -27,8 +27,8 @@ public class TaskController {
     private ProjectService projectService;
 
     @PostMapping("/api/getAllTasks")
-    public ResponseEntity<List<TaskDAO>> getAllTasks(@RequestBody Map<String,String> payloadObject){
-        List<TaskDAO> allTasksList = Collections.emptyList();
+    public ResponseEntity<List<Task>> getAllTasks(@RequestBody Map<String,String> payloadObject){
+        List<Task> allTasksList = Collections.emptyList();
         if(payloadObject.containsKey("projectId")) {
             String projectId = payloadObject.get("projectId");
             allTasksList = taskService.getTasksInProject(projectId);
