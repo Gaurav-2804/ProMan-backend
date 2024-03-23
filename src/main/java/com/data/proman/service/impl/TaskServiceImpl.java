@@ -122,8 +122,8 @@ public class TaskServiceImpl implements TaskService {
     private TaskDAO fetchTask(Task task) {
         TaskDAO taskDAO = new TaskDAO();
         this.modelMapper.map(task, taskDAO);
-        String assignee = memberRepository.findById(task.getAssigneeId()).get().getMailId() ;
-        String reporter = memberRepository.findById(task.getReporterId()).get().getMailId();
+        String assignee = memberRepository.findById(task.getAssigneeId()).get().getName() ;
+        String reporter = memberRepository.findById(task.getReporterId()).get().getName();
         taskDAO.setAssignee(assignee);
         taskDAO.setReporter(reporter);
         return taskDAO;
@@ -136,7 +136,7 @@ public class TaskServiceImpl implements TaskService {
         if(taskEntity.isPresent() && projectEntity.isPresent()) {
             Project project = projectEntity.get();
             Task taskOld = taskEntity.get();
-            if(!taskOld.getStatus().equals(task.getStatus())) {
+            if(!taskOld.getStatus().equalsIgnoreCase(task.getStatus())) {
                 handleUpdateTaskProjectMap(projectId, taskId, task, project);
             }
             if(!taskOld.getAssigneeId().equals(task.getAssigneeId())){
@@ -161,7 +161,7 @@ public class TaskServiceImpl implements TaskService {
             Map<String, List<String>> taskIdmaps = taskProjectMap.getTaskStatusMap();
             String taskStatus = task.getStatus();
             taskIdmaps.forEach((String status, List<String> idList) -> {
-                if(status.equals(taskStatus)) {
+                if((status).equalsIgnoreCase((taskStatus))) {
                     taskIdmaps.get(status).add(taskId);
                 }
                 else {
@@ -433,7 +433,7 @@ public class TaskServiceImpl implements TaskService {
 
     private void configureTask(Task task, String taskId, String projectKey, MultipartFile[] files) throws IOException {
         task.setTaskId(taskId);
-        task.setStatus("OPEN");
+        task.setStatus("Open");
         if(!Arrays.asList(files).isEmpty()) {
             Map<String,String> fileData = uploadImage(task.getTaskId(), projectKey, files);
             task.setFilesMapping(fileData);
